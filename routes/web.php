@@ -3,6 +3,8 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\WarehouseController;
+use App\Http\Controllers\ProductController;
 
 
 Route::get('/', function () {
@@ -20,10 +22,15 @@ Route::middleware('auth')->group(function () {
 });
 
 
+Route::get('/home', [DashboardController::class, 'index'])
+    ->middleware(['auth'])->name('dashboard');
+
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth'])->name('dashboard');
 
 
+require __DIR__ . '/auth.php';
 
+Route::resource('warehouses', WarehouseController::class)->middleware('auth');
 
-require __DIR__.'/auth.php';
+Route::resource('products', ProductController::class)->middleware('auth');
