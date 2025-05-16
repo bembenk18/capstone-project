@@ -51,11 +51,13 @@
             <div class="modal fade" id="imageModal{{ $p->id }}" tabindex="-1" aria-labelledby="imageModalLabel{{ $p->id }}" aria-hidden="true">
               <div class="modal-dialog modal-dialog-centered modal-sm">
                 <div class="modal-content">
-                  <div class="modal-header">
-                    <h5 class="modal-title" id="imageModalLabel{{ $p->id }}">Foto Produk</h5>
-                    <!-- <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button> -->
-                    <button type="button" class="btn-close"  data-bs-dismiss="modal" aria-label="Close"></button>
-                  </div>
+                <div class="modal-header">
+    <h5 class="modal-title">Foto Produk</h5>
+    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Tutup">
+        <span aria-hidden="true">&times;</span>
+    </button>
+</div>
+
                   <div class="modal-body text-center">
                     @if($p->image)
                         <img src="{{ asset('storage/' . $p->image) }}" class="img-fluid rounded">
