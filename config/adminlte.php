@@ -412,6 +412,12 @@ return [
             'url'  => 'products',
             'icon' => 'fas fa-boxes',
         ],
+        [
+            'text' => 'Transaksi',
+            'url'  => 'transactions',
+            'icon' => 'fas fa-exchange-alt',
+        ],
+        
         
     ],
 

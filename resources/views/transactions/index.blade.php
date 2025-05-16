@@ -1,0 +1,91 @@
+@extends('adminlte::page')
+
+@section('title', 'Transaksi')
+
+@section('content_header')
+    <h1>Histori Transaksi Barang</h1>
+@stop
+
+@section('content')
+    @if (session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
+    
+
+    <a href="{{ route('transactions.create') }}" class="btn btn-primary mb-3">+ Tambah Transaksi</a>
+    <form method="GET" class="mb-4 row g-3">
+    <div class="col-md-3">
+        <label>Produk</label>
+        <select name="product_id" class="form-control">
+            <option value="">-- Semua Produk --</option>
+            @foreach($products as $p)
+                <option value="{{ $p->id }}" {{ request('product_id') == $p->id ? 'selected' : '' }}>
+                    {{ $p->name }}
+                </option>
+            @endforeach
+        </select>
+    </div>
+
+    <div class="col-md-3">
+        <label>Gudang</label>
+        <select name="warehouse_id" class="form-control">
+            <option value="">-- Semua Gudang --</option>
+            @foreach($warehouses as $w)
+                <option value="{{ $w->id }}" {{ request('warehouse_id') == $w->id ? 'selected' : '' }}>
+                    {{ $w->name }}
+                </option>
+            @endforeach
+        </select>
+    </div>
+
+    <div class="col-md-2">
+        <label>Dari Tanggal</label>
+        <input type="date" name="start_date" class="form-control" value="{{ request('start_date') }}">
+    </div>
+
+    <div class="col-md-2">
+        <label>Sampai Tanggal</label>
+        <input type="date" name="end_date" class="form-control" value="{{ request('end_date') }}">
+    </div>
+
+    <div class="col-md-2 d-flex align-items-end">
+        <button type="submit" class="btn btn-success">Filter</button>
+        <a href="{{ route('transactions.index') }}" class="btn btn-secondary ms-2">Reset</a>
+    </div>
+</form>
+
+
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>Produk</th>
+                <th>Jenis</th>
+                <th>Jumlah</th>
+                <th>Catatan</th>
+                <th>Waktu</th>
+                <th>Gudang</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($transactions as $t)
+                <tr>
+                    <td>{{ $t->product->name ?? '-' }}</td>
+
+                    <td>
+                        @if ($t->type === 'in')
+                            <span class="badge bg-success">Masuk</span>
+                        @else
+                            <span class="badge bg-danger">Keluar</span>
+                        @endif
+                    </td>
+
+                    <td>{{ $t->quantity }}</td>
+                    <td>{{ $t->note ?? '-' }}</td>
+                    <td>{{ $t->created_at->format('d/m/Y H:i') }}</td>
+                    <td>{{ $t->warehouse->name ?? '-' }}</td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+    
+@stop

@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\TransactionController;
 
 
 Route::get('/', function () {
@@ -34,3 +35,4 @@ require __DIR__ . '/auth.php';
 Route::resource('warehouses', WarehouseController::class)->middleware('auth');
 
 Route::resource('products', ProductController::class)->middleware('auth');
+Route::resource('transactions', TransactionController::class)->middleware('auth');
