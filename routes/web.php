@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\TransactionExportController;
 
 
 Route::get('/', function () {
@@ -36,3 +37,8 @@ Route::resource('warehouses', WarehouseController::class)->middleware('auth');
 
 Route::resource('products', ProductController::class)->middleware('auth');
 Route::resource('transactions', TransactionController::class)->middleware('auth');
+
+
+
+Route::get('transactions/export/excel', [TransactionExportController::class, 'exportExcel'])->name('transactions.export.excel');
+Route::get('transactions/export/pdf', [TransactionExportController::class, 'exportPdf'])->name('transactions.export.pdf');

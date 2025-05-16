@@ -53,6 +53,14 @@
         <a href="{{ route('transactions.index') }}" class="btn btn-secondary ms-2">Reset</a>
     </div>
 </form>
+<div class="mb-3">
+    <a href="{{ route('transactions.export.excel', request()->query()) }}" class="btn btn-success">
+        Export Excel
+    </a>
+    <a href="{{ route('transactions.export.pdf', request()->query()) }}" class="btn btn-danger">
+        Export PDF
+    </a>
+</div>
 
 
     <table class="table table-bordered table-striped">
