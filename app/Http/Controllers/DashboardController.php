@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use App\Models\Product;
 use App\Models\Transaction;
 use App\Models\Warehouse;
-use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
@@ -15,68 +13,43 @@ class DashboardController extends Controller
     {
         $totalProducts = Product::count();
         $totalWarehouses = Warehouse::count();
-
-        $now = Carbon::now();
         $totalTransIn = Transaction::where('type', 'in')
-            ->whereMonth('created_at', $now->month)
-            ->whereYear('created_at', $now->year)
-            ->count();
-
+                            ->whereMonth('created_at', date('m'))
+                            ->whereYear('created_at', date('Y'))
+                            ->count();
         $totalTransOut = Transaction::where('type', 'out')
-            ->whereMonth('created_at', $now->month)
-            ->whereYear('created_at', $now->year)
-            ->count();
+                            ->whereMonth('created_at', date('m'))
+                            ->whereYear('created_at', date('Y'))
+                            ->count();
 
         return view('dashboard', compact(
-            'totalProducts',
-            'totalWarehouses',
-            'totalTransIn',
-            'totalTransOut'
+            'totalProducts', 'totalWarehouses', 'totalTransIn', 'totalTransOut'
         ));
     }
 
-    public function chartData(Request $request): JsonResponse
+    public function chart(Request $request)
     {
-        $year = $request->year ?? date('Y');
-
-        $months = collect(range(1, 12))->map(fn($m) => Carbon::create()->month($m)->format('F'));
-        $dataIn = [];
-        $dataOut = [];
-
-        foreach (range(1, 12) as $m) {
-            $dataIn[] = Transaction::where('type', 'in')
-                ->whereMonth('created_at', $m)
-                ->whereYear('created_at', $year)
-                ->count();
-
-            $dataOut[] = Transaction::where('type', 'out')
-                ->whereMonth('created_at', $m)
-                ->whereYear('created_at', $year)
-                ->count();
+        $year = $request->get('year', date('Y'));
+        $labels = [];
+        $in = [];
+        $out = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $labels[] = date('F', mktime(0, 0, 0, $i, 10));
+            $in[] = Transaction::where('type', 'in')->whereYear('created_at', $year)->whereMonth('created_at', $i)->count();
+            $out[] = Transaction::where('type', 'out')->whereYear('created_at', $year)->whereMonth('created_at', $i)->count();
         }
-
-        return response()->json([
-            'labels' => $months,
-            'in' => $dataIn,
-            'out' => $dataOut
-        ]);
+        return response()->json([ 'labels' => $labels, 'in' => $in, 'out' => $out ]);
     }
 
-    public function stokChart(): JsonResponse
+    public function stokChart()
     {
-        $data = Warehouse::with('products')->get();
-
+        $warehouses = Warehouse::with('products')->get();
         $labels = [];
         $values = [];
-
-        foreach ($data as $warehouse) {
-            $labels[] = $warehouse->name;
-            $values[] = $warehouse->products->sum('stock');
+        foreach ($warehouses as $w) {
+            $labels[] = $w->name;
+            $values[] = $w->products->sum('stock');
         }
-
-        return response()->json([
-            'labels' => $labels,
-            'values' => $values,
-        ]);
+        return response()->json(['labels' => $labels, 'values' => $values]);
     }
 }

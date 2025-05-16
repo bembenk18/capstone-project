@@ -8,53 +8,25 @@
 
 @section('content')
 <div class="row">
-    <div class="col-md-3">
-        <div class="small-box bg-info">
-            <div class="inner">
-                <h3>{{ $totalProducts }}</h3>
-                <p>Total Produk</p>
-            </div>
-            <div class="icon">
-                <i class="fas fa-box"></i>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="small-box bg-success">
-            <div class="inner">
-                <h3>{{ $totalWarehouses }}</h3>
-                <p>Total Gudang</p>
-            </div>
-            <div class="icon">
-                <i class="fas fa-warehouse"></i>
+    @php
+        $box = [
+            ['color' => 'info', 'value' => $totalProducts, 'label' => 'Total Produk', 'icon' => 'fas fa-box'],
+            ['color' => 'success', 'value' => $totalWarehouses, 'label' => 'Total Gudang', 'icon' => 'fas fa-warehouse'],
+            ['color' => 'warning', 'value' => $totalTransIn, 'label' => 'Transaksi Masuk (bulan ini)', 'icon' => 'fas fa-arrow-circle-down'],
+            ['color' => 'danger', 'value' => $totalTransOut, 'label' => 'Transaksi Keluar (bulan ini)', 'icon' => 'fas fa-arrow-circle-up'],
+        ];
+    @endphp
+    @foreach ($box as $b)
+        <div class="col-md-3">
+            <div class="small-box bg-{{ $b['color'] }}">
+                <div class="inner">
+                    <h3>{{ $b['value'] }}</h3>
+                    <p>{{ $b['label'] }}</p>
+                </div>
+                <div class="icon"><i class="{{ $b['icon'] }}"></i></div>
             </div>
         </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="small-box bg-warning">
-            <div class="inner">
-                <h3>{{ $totalTransIn }}</h3>
-                <p>Transaksi Masuk (bulan ini)</p>
-            </div>
-            <div class="icon">
-                <i class="fas fa-arrow-circle-down"></i>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-3">
-        <div class="small-box bg-danger">
-            <div class="inner">
-                <h3>{{ $totalTransOut }}</h3>
-                <p>Transaksi Keluar (bulan ini)</p>
-            </div>
-            <div class="icon">
-                <i class="fas fa-arrow-circle-up"></i>
-            </div>
-        </div>
-    </div>
+    @endforeach
 </div>
 
 {{-- Filter tahun --}}
@@ -67,39 +39,33 @@
     </select>
 </div>
 
-{{-- Grafik transaksi --}}
-<div class="card mb-4">
-    <div class="card-header bg-primary text-white">Grafik Transaksi Barang</div>
-    <div class="card-body">
-        <canvas id="transactionChart" height="90"></canvas>
+{{-- Grafik Transaksi & Stok per Gudang --}}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">Grafik Transaksi Barang</div>
+            <div class="card-body chart-container">
+                <canvas id="transactionChart"></canvas>
+            </div>
+        </div>
     </div>
-</div>
-
-{{-- Grafik stok --}}
-<div class="card mb-4">
-    <div class="card-header bg-secondary text-white">Stok Total per Gudang</div>
-    <div class="card-body" style="height: 400px;">
-        <canvas id="stokChart"></canvas>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header bg-secondary text-white">Stok Total per Gudang</div>
+            <div class="card-body chart-container">
+                <canvas id="stokChart"></canvas>
+            </div>
+        </div>
     </div>
 </div>
 @stop
 
 @section('css')
 <style>
-    #stokChart {
-        max-width: 400px;
-        max-height: 400px;
-        display: block;
-        margin: auto;
-    }
-
-    .content-wrapper {
-        min-height: 100vh !important;
-    }
-
-    .main-sidebar {
-        background-color: #343a40 !important;
-    }
+.chart-container {
+    position: relative;
+    height: 350px;
+}
 </style>
 @stop
 
@@ -120,20 +86,27 @@ function loadTransactionChart(year = new Date().getFullYear()) {
                         {
                             label: 'Masuk',
                             data: data.in,
-                            borderColor: 'rgba(40, 167, 69, 0.9)',
-                            fill: false
+                            borderColor: 'rgba(40, 167, 69, 1)',
+                            backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                            fill: true,
+                            tension: 0.4
                         },
                         {
                             label: 'Keluar',
                             data: data.out,
-                            borderColor: 'rgba(220, 53, 69, 0.9)',
-                            fill: false
+                            borderColor: 'rgba(220, 53, 69, 1)',
+                            backgroundColor: 'rgba(220, 53, 69, 0.2)',
+                            fill: true,
+                            tension: 0.4
                         }
                     ]
                 },
                 options: {
                     responsive: true,
-                    plugins: { legend: { position: 'top' } },
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' }
+                    },
                     scales: {
                         y: {
                             beginAtZero: true,

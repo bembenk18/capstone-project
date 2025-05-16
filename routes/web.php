@@ -47,6 +47,5 @@ Route::get('transactions/export/pdf', [TransactionExportController::class, 'expo
 Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit')->middleware('auth');
 Route::post('/settings', [SettingController::class, 'update'])->name('settings.update')->middleware('auth');
 
-Route::get('/dashboard/chart', [App\Http\Controllers\DashboardController::class, 'chartData'])->name('dashboard.chart');
-
+Route::get('/dashboard/chart', [DashboardController::class, 'chart'])->name('dashboard.chart');
 Route::get('/dashboard/stok-chart', [DashboardController::class, 'stokChart'])->name('dashboard.stok-chart');
