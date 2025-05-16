@@ -27,6 +27,9 @@ class TransactionController extends Controller
         if ($request->filled('start_date') && $request->filled('end_date')) {
             $query->whereBetween('created_at', [$request->start_date, $request->end_date]);
         }
+        if ($request->has('type') && in_array($request->type, ['in', 'out'])) {
+            $query->where('type', $request->type);
+        }
     
         $transactions = $query->get();
     

@@ -10,7 +10,9 @@ use Illuminate\Http\Request;
 class DashboardController extends Controller
 {
     public function index()
+    
     {
+        $lowStockProducts = Product::whereColumn('stock', '<', 'minimum_stock')->get();
         $totalProducts = Product::count();
         $totalWarehouses = Warehouse::count();
         $totalTransIn = Transaction::where('type', 'in')
@@ -22,9 +24,15 @@ class DashboardController extends Controller
                             ->whereYear('created_at', date('Y'))
                             ->count();
 
+       
         return view('dashboard', compact(
-            'totalProducts', 'totalWarehouses', 'totalTransIn', 'totalTransOut'
+            'totalProducts',
+            'totalWarehouses',
+            'totalTransIn',
+            'totalTransOut',
+            'lowStockProducts'
         ));
+        
     }
 
     public function chart(Request $request)

@@ -427,10 +427,19 @@ return [
             'icon' => 'fas fa-exchange-alt',
         ],
         [
-            'text' => 'Pengaturan',
+            'header' => 'Pengaturan',
+        ],
+        [
+            'text' => 'User',
+            'url'  => 'user',
+            'icon' => 'fas fa-user',
+        ],
+        [
+            'text' => 'Perusahaan',
             'url'  => 'settings',
             'icon' => 'fas fa-cog',
         ],
+       
 
 
     ],

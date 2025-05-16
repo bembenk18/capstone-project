@@ -10,59 +10,74 @@
     @if (session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
-    
 
     <a href="{{ route('transactions.create') }}" class="btn btn-primary mb-3">+ Tambah Transaksi</a>
-    <form method="GET" class="mb-4 row g-3">
-    <div class="col-md-3">
-        <label>Produk</label>
-        <select name="product_id" class="form-control">
-            <option value="">-- Semua Produk --</option>
-            @foreach($products as $p)
-                <option value="{{ $p->id }}" {{ request('product_id') == $p->id ? 'selected' : '' }}>
-                    {{ $p->name }}
-                </option>
-            @endforeach
-        </select>
+
+    {{-- Filter Form --}}
+    <form method="GET" class="mb-4 row g-3 align-items-end">
+        <div class="col-md-3">
+            <label>Produk</label>
+            <select name="product_id" class="form-control">
+                <option value="">-- Semua Produk --</option>
+                @foreach($products as $p)
+                    <option value="{{ $p->id }}" {{ request('product_id') == $p->id ? 'selected' : '' }}>
+                        {{ $p->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        <div class="col-md-3">
+            <label>Gudang</label>
+            <select name="warehouse_id" class="form-control">
+                <option value="">-- Semua Gudang --</option>
+                @foreach($warehouses as $w)
+                    <option value="{{ $w->id }}" {{ request('warehouse_id') == $w->id ? 'selected' : '' }}>
+                        {{ $w->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <label>Jenis</label>
+            <select name="type" class="form-control">
+                <option value="">-- Semua Jenis --</option>
+                <option value="in" {{ request('type') == 'in' ? 'selected' : '' }}>Masuk</option>
+                <option value="out" {{ request('type') == 'out' ? 'selected' : '' }}>Keluar</option>
+            </select>
+        </div>
+
+        {{-- Uncomment jika ingin filter tanggal --}}
+        <!--
+        <div class="col-md-2">
+            <label>Dari Tanggal</label>
+            <input type="date" name="start_date" class="form-control" value="{{ request('start_date') }}">
+        </div>
+
+        <div class="col-md-2">
+            <label>Sampai Tanggal</label>
+            <input type="date" name="end_date" class="form-control" value="{{ request('end_date') }}">
+        </div>
+        -->
+
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-success w-100">Filter</button>
+            <a href="{{ route('transactions.index') }}" class="btn btn-secondary w-100">Reset</a>
+        </div>
+    </form>
+
+    {{-- Export --}}
+    <div class="mb-3">
+        <a href="{{ route('transactions.export.excel', request()->query()) }}" class="btn btn-success">
+            Export Excel
+        </a>
+        <a href="{{ route('transactions.export.pdf', request()->query()) }}" class="btn btn-danger">
+            Export PDF
+        </a>
     </div>
 
-    <div class="col-md-3">
-        <label>Gudang</label>
-        <select name="warehouse_id" class="form-control">
-            <option value="">-- Semua Gudang --</option>
-            @foreach($warehouses as $w)
-                <option value="{{ $w->id }}" {{ request('warehouse_id') == $w->id ? 'selected' : '' }}>
-                    {{ $w->name }}
-                </option>
-            @endforeach
-        </select>
-    </div>
-
-    <div class="col-md-2">
-        <label>Dari Tanggal</label>
-        <input type="date" name="start_date" class="form-control" value="{{ request('start_date') }}">
-    </div>
-
-    <div class="col-md-2">
-        <label>Sampai Tanggal</label>
-        <input type="date" name="end_date" class="form-control" value="{{ request('end_date') }}">
-    </div>
-
-    <div class="col-md-2 d-flex align-items-end">
-        <button type="submit" class="btn btn-success">Filter</button>
-        <a href="{{ route('transactions.index') }}" class="btn btn-secondary ms-2">Reset</a>
-    </div>
-</form>
-<div class="mb-3">
-    <a href="{{ route('transactions.export.excel', request()->query()) }}" class="btn btn-success">
-        Export Excel
-    </a>
-    <a href="{{ route('transactions.export.pdf', request()->query()) }}" class="btn btn-danger">
-        Export PDF
-    </a>
-</div>
-
-
+    {{-- Tabel Transaksi --}}
     <table class="table table-bordered table-striped">
         <thead>
             <tr>
@@ -75,10 +90,9 @@
             </tr>
         </thead>
         <tbody>
-            @foreach($transactions as $t)
+            @forelse($transactions as $t)
                 <tr>
                     <td>{{ $t->product->name ?? '-' }}</td>
-
                     <td>
                         @if ($t->type === 'in')
                             <span class="badge bg-success">Masuk</span>
@@ -86,14 +100,16 @@
                             <span class="badge bg-danger">Keluar</span>
                         @endif
                     </td>
-
                     <td>{{ $t->quantity }}</td>
                     <td>{{ $t->note ?? '-' }}</td>
                     <td>{{ $t->created_at->format('d/m/Y H:i') }}</td>
                     <td>{{ $t->warehouse->name ?? '-' }}</td>
                 </tr>
-            @endforeach
+            @empty
+                <tr>
+                    <td colspan="6" class="text-center">Tidak ada data transaksi.</td>
+                </tr>
+            @endforelse
         </tbody>
     </table>
-    
 @stop

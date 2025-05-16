@@ -12,8 +12,8 @@
         $box = [
             ['color' => 'info', 'value' => $totalProducts, 'label' => 'Total Produk', 'icon' => 'fas fa-box'],
             ['color' => 'success', 'value' => $totalWarehouses, 'label' => 'Total Gudang', 'icon' => 'fas fa-warehouse'],
-            ['color' => 'warning', 'value' => $totalTransIn, 'label' => 'Transaksi Masuk (bulan ini)', 'icon' => 'fas fa-arrow-circle-down'],
-            ['color' => 'danger', 'value' => $totalTransOut, 'label' => 'Transaksi Keluar (bulan ini)', 'icon' => 'fas fa-arrow-circle-up'],
+            ['color' => 'warning', 'value' => $totalTransIn, 'label' => 'Transaksi Masuk', 'icon' => 'fas fa-arrow-circle-down'],
+            ['color' => 'danger', 'value' => $totalTransOut, 'label' => 'Transaksi Keluar', 'icon' => 'fas fa-arrow-circle-up'],
         ];
     @endphp
     @foreach ($box as $b)
@@ -38,6 +38,17 @@
         @endfor
     </select>
 </div>
+@if($lowStockProducts->count())
+<div class="alert alert-danger">
+    <strong>⚠ Stok Menipis!</strong> Beberapa produk di bawah batas minimum:
+    <ul class="mb-0">
+        @foreach($lowStockProducts as $p)
+            <li>{{ $p->name }} (Stok: {{ $p->stock }}, Minimum: {{ $p->minimum_stock }})</li>
+        @endforeach
+    </ul>
+</div>
+@endif
+
 
 {{-- Grafik Transaksi & Stok per Gudang --}}
 <div class="row">
