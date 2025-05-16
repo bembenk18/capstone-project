@@ -1,6 +1,6 @@
 @extends('adminlte::page')
 
-@section('title', 'Barang')
+<!-- @section('title', 'Barang') -->
 
 @section('content_header')
     <h1>Daftar Barang</h1>
@@ -11,6 +11,7 @@
 
 @section('content')
     <a href="{{ route('products.create') }}" class="btn btn-primary mb-3">+ Tambah Barang</a>
+@section('title', 'Barang | ' . \App\Helpers\SettingHelper::companyName())
 
     @if (session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>

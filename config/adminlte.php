@@ -63,7 +63,7 @@ return [
     |
     */
 
-    'logo' => '<b>Admin</b>LTE',
+    // 'logo' => '<b>Admin</b>LTE',
     'logo_img' => 'vendor/adminlte/dist/img/AdminLTELogo.png',
     'logo_img_class' => 'brand-image img-circle elevation-3',
     'logo_img_xl' => null,
@@ -393,10 +393,19 @@ return [
     //         'url' => '#',
     //     ],
     // ],
-    
+
     // iki menu
 
     'menu' => [
+        [
+            'type' => 'navbar-search',
+            'text' => 'search',
+            'topnav_right' => true,
+        ],
+        [
+            'type' => 'fullscreen-widget',
+            'topnav_right' => true,
+        ],
         [
             'text' => 'Dashboard',
             'url'  => 'dashboard',
@@ -417,8 +426,13 @@ return [
             'url'  => 'transactions',
             'icon' => 'fas fa-exchange-alt',
         ],
-        
-        
+        [
+            'text' => 'Pengaturan',
+            'url'  => 'settings',
+            'icon' => 'fas fa-cog',
+        ],
+
+
     ],
 
 

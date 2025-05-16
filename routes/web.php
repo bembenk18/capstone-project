@@ -7,6 +7,7 @@ use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionExportController;
+use App\Http\Controllers\SettingController;
 
 
 Route::get('/', function () {
@@ -42,3 +43,6 @@ Route::resource('transactions', TransactionController::class)->middleware('auth'
 
 Route::get('transactions/export/excel', [TransactionExportController::class, 'exportExcel'])->name('transactions.export.excel');
 Route::get('transactions/export/pdf', [TransactionExportController::class, 'exportPdf'])->name('transactions.export.pdf');
+
+Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit')->middleware('auth');
+Route::post('/settings', [SettingController::class, 'update'])->name('settings.update')->middleware('auth');
