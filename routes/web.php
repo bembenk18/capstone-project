@@ -51,3 +51,6 @@ Route::get('/dashboard/chart', [DashboardController::class, 'chart'])->name('das
 Route::get('/dashboard/stok-chart', [DashboardController::class, 'stokChart'])->name('dashboard.stok-chart');
 
 Route::get('/dashboard/transaction-summary', [DashboardController::class, 'summaryChart'])->name('dashboard.summary-chart');
+
+
+Route::post('/products/import', [ProductController::class, 'import'])->name('products.import');
