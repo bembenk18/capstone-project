@@ -1,6 +1,6 @@
 @extends('adminlte::page')
 
-@section('title', 'Edit Barang')
+@section('title', 'Edit Barang | ' . \App\Helpers\SettingHelper::companyName())
 
 @section('content_header')
 <h1>Edit Barang</h1>

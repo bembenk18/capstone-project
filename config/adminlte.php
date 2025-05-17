@@ -412,6 +412,9 @@ return [
             'icon' => 'fas fa-tachometer-alt',
         ],
         [
+            'header' => 'Inventory',
+        ],
+        [
             'text' => 'Gudang',
             'url'  => 'warehouses',
             'icon' => 'fas fa-warehouse',

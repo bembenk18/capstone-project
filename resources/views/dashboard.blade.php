@@ -1,6 +1,8 @@
 @extends('adminlte::page')
 
-@section('title', 'Dashboard')
+
+
+@section('title', 'Dashboard | ' . \App\Helpers\SettingHelper::companyName())
 
 @section('content_header')
     <h1>Dashboard</h1>

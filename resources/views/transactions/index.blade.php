@@ -1,6 +1,7 @@
 @extends('adminlte::page')
 
-@section('title', 'Transaksi')
+
+@section('title', 'Transaksi | ' . \App\Helpers\SettingHelper::companyName())
 
 @section('content_header')
     <h1>Histori Transaksi Barang</h1>

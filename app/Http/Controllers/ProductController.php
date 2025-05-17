@@ -9,8 +9,6 @@ use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\ProductsImport;
 
-
-
 class ProductController extends Controller
 {
     public function index()
@@ -35,7 +33,8 @@ class ProductController extends Controller
             'image'        => 'nullable|image|max:2048',
         ]);
 
-        $data = $request->only(['name', 'sku', 'stock']);
+        $data = $request->only(['name', 'sku']);
+        $data['stock'] = 0; // Awal diset 0, nanti dihitung ulang
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('products', 'public');
@@ -44,10 +43,13 @@ class ProductController extends Controller
         // Simpan produk
         $product = Product::create($data);
 
-        // Tambahkan ke warehouse via pivot table
+        // Tambahkan stok di pivot
         $product->warehouses()->attach($request->warehouse_id, [
             'stock' => $request->stock
         ]);
+
+        // Sinkronisasi total stok ke tabel `products`
+        $this->syncProductStock($product);
 
         return redirect()->route('products.index')->with('success', 'Barang berhasil ditambahkan');
     }
@@ -80,10 +82,13 @@ class ProductController extends Controller
 
         $product->update($data);
 
-        // Sink atau attach ulang stok ke gudang
+        // Update stok di pivot
         $product->warehouses()->syncWithoutDetaching([
             $request->warehouse_id => ['stock' => $request->stock]
         ]);
+
+        // Sinkronisasi stok total
+        $this->syncProductStock($product);
 
         return redirect()->route('products.index')->with('success', 'Barang berhasil diperbarui');
     }
@@ -94,15 +99,11 @@ class ProductController extends Controller
             Storage::disk('public')->delete($product->image);
         }
 
-        // Detach relasi dengan gudang dulu
         $product->warehouses()->detach();
-
         $product->delete();
 
         return redirect()->route('products.index')->with('success', 'Barang berhasil dihapus');
     }
-
-
 
     public function import(Request $request)
     {
@@ -112,6 +113,20 @@ class ProductController extends Controller
 
         Excel::import(new ProductsImport, $request->file('file'));
 
+        // Setelah import, kamu bisa sync ulang semua stok
+        foreach (Product::with('warehouses')->get() as $product) {
+            $this->syncProductStock($product);
+        }
+
         return redirect()->route('products.index')->with('success', 'Produk berhasil diimpor dari Excel.');
+    }
+
+    /**
+     * Sinkronisasi kolom `stock` di tabel products
+     */
+    protected function syncProductStock(Product $product)
+    {
+        $totalStock = $product->warehouses()->sum('product_warehouse.stock');
+        $product->update(['stock' => $totalStock]);
     }
 }

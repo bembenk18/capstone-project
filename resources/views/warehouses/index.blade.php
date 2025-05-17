@@ -1,6 +1,8 @@
 @extends('adminlte::page')
 
-@section('title', 'Gudang')
+
+@section('title', 'Gudang | ' . \App\Helpers\SettingHelper::companyName())
+
 
 @section('content_header')
     <h1>Daftar Gudang</h1>
