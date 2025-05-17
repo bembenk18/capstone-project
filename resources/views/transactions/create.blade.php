@@ -38,10 +38,14 @@
         </select>
     </div>
 
-    <div class="form-group mt-3">
-        <label>Jumlah</label>
-        <input type="number" name="quantity" class="form-control" required min="1">
-    </div>
+    <div class="form-group">
+    <label>Jumlah</label>
+    <input type="number" name="quantity" class="form-control" min="1" value="{{ old('quantity') }}">
+    @error('quantity')
+        <small class="text-danger">{{ $message }}</small>
+    @enderror
+</div>
+
     <div class="form-group mt-3">
         <label>Gudang</label>
         <select name="warehouse_id" class="form-control" required>

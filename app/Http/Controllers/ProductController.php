@@ -11,7 +11,7 @@ class ProductController extends Controller
 {
     public function index()
     {
-        $products = Product::with('warehouse')->get();
+        $products = Product::with('warehouses')->get();
         return view('products.index', compact('products'));
     }
 
@@ -31,13 +31,19 @@ class ProductController extends Controller
             'image'        => 'nullable|image|max:2048',
         ]);
 
-        $data = $request->only(['name', 'sku', 'stock', 'warehouse_id']);
+        $data = $request->only(['name', 'sku', 'stock']);
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('products', 'public');
         }
 
-        Product::create($data);
+        // Simpan produk
+        $product = Product::create($data);
+
+        // Tambahkan ke warehouse via pivot table
+        $product->warehouses()->attach($request->warehouse_id, [
+            'stock' => $request->stock
+        ]);
 
         return redirect()->route('products.index')->with('success', 'Barang berhasil ditambahkan');
     }
@@ -45,6 +51,7 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         $warehouses = Warehouse::all();
+        $product->load('warehouses');
         return view('products.edit', compact('product', 'warehouses'));
     }
 
@@ -58,28 +65,33 @@ class ProductController extends Controller
             'image'        => 'nullable|image|max:2048',
         ]);
 
-        $data = $request->only(['name', 'sku', 'stock', 'warehouse_id']);
+        $data = $request->only(['name', 'sku']);
 
         if ($request->hasFile('image')) {
-            // Hapus gambar lama jika ada
             if ($product->image) {
                 Storage::disk('public')->delete($product->image);
             }
-
             $data['image'] = $request->file('image')->store('products', 'public');
         }
 
         $product->update($data);
+
+        // Sink atau attach ulang stok ke gudang
+        $product->warehouses()->syncWithoutDetaching([
+            $request->warehouse_id => ['stock' => $request->stock]
+        ]);
 
         return redirect()->route('products.index')->with('success', 'Barang berhasil diperbarui');
     }
 
     public function destroy(Product $product)
     {
-        // Hapus file gambar jika ada
         if ($product->image) {
             Storage::disk('public')->delete($product->image);
         }
+
+        // Detach relasi dengan gudang dulu
+        $product->warehouses()->detach();
 
         $product->delete();
 

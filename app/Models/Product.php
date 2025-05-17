@@ -3,14 +3,20 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Warehouse;
+
 
 class Product extends Model
 {
-    protected $fillable = ['name', 'sku', 'stock', 'warehouse_id', 'image'];
+    protected $fillable = ['name', 'sku', 'stock', 'warehouse_id', 'image', 'minimum_stock'];
 
 
-    public function warehouse()
-    {
-        return $this->belongsTo(Warehouse::class);
-    }
+
+    public function warehouses()
+{
+    return $this->belongsToMany(Warehouse::class)->withPivot('stock')->withTimestamps();
+}
+
+    
+    
 }

@@ -7,9 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 class Warehouse extends Model
 {
     protected $fillable = ['name', 'location'];
+    
     public function products()
-{
-    return $this->hasMany(\App\Models\Product::class);
-}
-
+    {
+        return $this->belongsToMany(Product::class)->withPivot('stock')->withTimestamps();
+    }
+    
 }
