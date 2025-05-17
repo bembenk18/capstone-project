@@ -6,9 +6,8 @@ use App\Models\Product;
 use App\Models\Warehouse;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
-use App\Helpers\Telegram;
 use Illuminate\Support\Facades\DB;
-
+use App\Helpers\Telegram;
 
 class TransactionController extends Controller
 {
@@ -58,45 +57,37 @@ class TransactionController extends Controller
             'warehouse_id'  => 'required|exists:warehouses,id',
         ]);
 
-        $productId   = $request->product_id;
+        $productId = $request->product_id;
         $warehouseId = $request->warehouse_id;
-        $quantity    = $request->quantity;
-        $type        = $request->type;
+        $quantity = $request->quantity;
+        $type = $request->type;
 
-        // Ambil stok saat ini dari tabel pivot
         $pivot = DB::table('product_warehouse')
             ->where('product_id', $productId)
             ->where('warehouse_id', $warehouseId)
             ->first();
 
         if (!$pivot) {
-            // Buat relasi jika belum ada
             DB::table('product_warehouse')->insert([
-                'product_id'   => $productId,
+                'product_id' => $productId,
                 'warehouse_id' => $warehouseId,
-                'stock'        => 0,
-                'created_at'   => now(),
-                'updated_at'   => now(),
+                'stock' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
             $pivotStock = 0;
         } else {
             $pivotStock = $pivot->stock;
         }
 
-        // Validasi stok keluar
         if ($type === 'out' && $quantity > $pivotStock) {
-            return back()->withInput()->withErrors([
-                'quantity' => 'Stok di gudang ini tidak mencukupi.'
-            ]);
+            return back()->withInput()->withErrors(['quantity' => 'Stok di gudang ini tidak mencukupi.']);
         }
 
         // Simpan transaksi
         Transaction::create($request->all());
 
-        // Update stok
-        $newStock = $type === 'in'
-            ? $pivotStock + $quantity
-            : $pivotStock - $quantity;
+        $newStock = $type === 'in' ? $pivotStock + $quantity : $pivotStock - $quantity;
 
         DB::table('product_warehouse')
             ->where('product_id', $productId)
@@ -110,16 +101,23 @@ class TransactionController extends Controller
         $product = Product::find($productId);
         $warehouse = Warehouse::find($warehouseId);
 
-        $message = "📦 <b>Transaksi Barang</b>\n"
-            . "Produk: <b>{$product->name}</b>\n"
-            . "Jenis: <b>" . ($type === 'in' ? 'Masuk' : 'Keluar') . "</b>\n"
-            . "Jumlah: <b>{$quantity}</b>\n"
-            . "Gudang: <b>{$warehouse->name}</b>\n"
-            . "Waktu: " . now()->format('d/m/Y H:i');
+        $message = "<b>📦 Transaksi Baru</b>\n"
+                 . "Produk: <b>{$product->name}</b>\n"
+                 . "Jenis: <b>" . ($type === 'in' ? 'Masuk' : 'Keluar') . "</b>\n"
+                 . "Jumlah: <b>{$quantity}</b>\n"
+                 . "Gudang: <b>{$warehouse->name}</b>\n"
+                 . "Waktu: " . now()->format('d/m/Y H:i');
 
         Telegram::send($message);
 
-        return redirect()->route('transactions.index')
-            ->with('success', 'Transaksi berhasil disimpan.');
+        // Cek stok setelah transaksi
+        $minimum = $product->minimum_stock ?? 0;
+        if ($newStock < $minimum) {
+            $lowStockMessage = "⚠️ Stok menipis untuk <b>{$product->name}</b> di gudang <b>{$warehouse->name}</b>.\n"
+                             . "Sisa: <b>{$newStock}</b>, Minimum: <b>{$minimum}</b>";
+            Telegram::send($lowStockMessage);
+        }
+
+        return redirect()->route('transactions.index')->with('success', 'Transaksi berhasil disimpan.');
     }
 }
