@@ -49,3 +49,5 @@ Route::post('/settings', [SettingController::class, 'update'])->name('settings.u
 
 Route::get('/dashboard/chart', [DashboardController::class, 'chart'])->name('dashboard.chart');
 Route::get('/dashboard/stok-chart', [DashboardController::class, 'stokChart'])->name('dashboard.stok-chart');
+
+Route::get('/dashboard/transaction-summary', [DashboardController::class, 'summaryChart'])->name('dashboard.summary-chart');
