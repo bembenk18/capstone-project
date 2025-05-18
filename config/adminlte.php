@@ -431,16 +431,19 @@ return [
         ],
         [
             'header' => 'Pengaturan',
+            'can'  => 'admin-only',
         ],
         [
             'text' => 'User',
             'url'  => 'user',
             'icon' => 'fas fa-user',
+            'can'  => 'admin-only',
         ],
         [
             'text' => 'Perusahaan',
             'url'  => 'settings',
             'icon' => 'fas fa-cog',
+            'can'  => 'admin-only',
         ],
        
 
