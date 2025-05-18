@@ -8,6 +8,8 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\TransactionExportController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\UserController;
+
 
 
 Route::get('/', function () {
@@ -54,3 +56,7 @@ Route::get('/dashboard/transaction-summary', [DashboardController::class, 'summa
 
 
 Route::post('/products/import', [ProductController::class, 'import'])->name('products.import');
+
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::resource('users', \App\Http\Controllers\UserController::class);
+});

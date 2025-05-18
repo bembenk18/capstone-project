@@ -13,8 +13,8 @@
     @php
         $box = [
             ['color' => 'info', 'value' => $totalProducts, 'label' => 'Total Produk', 'icon' => 'fas fa-box'],
-            ['color' => 'success', 'value' => $totalWarehouses, 'label' => 'Total Gudang', 'icon' => 'fas fa-warehouse'],
-            ['color' => 'warning', 'value' => $totalTransIn, 'label' => 'Transaksi Masuk', 'icon' => 'fas fa-arrow-circle-down'],
+            ['color' => 'warning', 'value' => $totalWarehouses, 'label' => 'Total Gudang', 'icon' => 'fas fa-warehouse'],
+            ['color' => 'success', 'value' => $totalTransIn, 'label' => 'Transaksi Masuk', 'icon' => 'fas fa-arrow-circle-down'],
             ['color' => 'danger', 'value' => $totalTransOut, 'label' => 'Transaksi Keluar', 'icon' => 'fas fa-arrow-circle-up'],
         ];
     @endphp
