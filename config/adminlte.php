@@ -435,7 +435,7 @@ return [
         ],
         [
             'text' => 'User',
-            'url'  => 'user',
+            'url'  => 'users',
             'icon' => 'fas fa-user',
             'can'  => 'admin-only',
         ],

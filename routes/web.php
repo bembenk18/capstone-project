@@ -45,12 +45,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/transaction-summary', [DashboardController::class, 'summaryChart'])->name('dashboard.summary-chart');
 });
 
-// 🛡️ Admin-Only Routes (User & Setting / Perusahaan)
-// Route::middleware(['auth', 'role:admin'])->group(function () {
-//     Route::resource('users', UserController::class);
-//     Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
-//     Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
-// });
+
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::resource('users', UserController::class);
     Route::get('/settings', [SettingController::class, 'edit'])->name('settings.edit');
