@@ -14,7 +14,9 @@ return [
     |
     */
 
-    'title' => 'AdminLTE 3',
+    'auth_views' => true,
+
+    'title' => 'Inventory Managemen System',
     'title_prefix' => '',
     'title_postfix' => '',
 
