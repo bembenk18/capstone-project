@@ -8,12 +8,18 @@ pipeline {
         PHP_BIN = "/usr/bin/php82"
         COMPOSER_BIN = "/usr/local/bin/composer"
         SSH_KEY = "/var/lib/jenkins/.ssh/alpine_git"
+
+        TELEGRAM_TOKEN = credentials('TELEGRAM_TOKEN')
+        TELEGRAM_CHAT_ID = credentials('TELEGRAM_CHAT_ID')
     }
 
     stages {
         stage('Checkout') {
             steps {
                 checkout scm
+                script {
+                    sendTelegram("📥 Checkout complete.")
+                }
             }
         }
 
@@ -28,6 +34,9 @@ pipeline {
                         fi
                     '
                 """
+                script {
+                    sendTelegram("📦 Backup created before deployment.")
+                }
             }
         }
 
@@ -45,6 +54,9 @@ pipeline {
                         fi
                     '
                 """
+                script {
+                    sendTelegram("📥 Git pull completed on Alpine server.")
+                }
             }
         }
 
@@ -56,6 +68,9 @@ pipeline {
                         cd ${REMOTE_DIR} && ${PHP_BIN} ${COMPOSER_BIN} install --no-interaction --prefer-dist --optimize-autoloader
                     '
                 """
+                script {
+                    sendTelegram("📦 Composer dependencies installed.")
+                }
             }
         }
 
@@ -68,19 +83,38 @@ pipeline {
                         /usr/sbin/php-fpm82 -D
                     '
                 """
+                script {
+                    sendTelegram("♻️ PHP-FPM restarted.")
+                }
             }
         }
 
         stage('Approval for Database Migration') {
             steps {
                 script {
-                    input message: '🚨 Lanjutkan migrasi database?', ok: 'Yes, Run Migrate'
-                    echo '✅ Proceeding to run migration...'
+                    def userInput = input message: '🚨 Proceed with database migration?', parameters: [
+                        choice(name: 'Decision', choices: ['Approve - Run Migrate', 'Reject - Skip Migration', 'Abort Deployment'], description: 'Select your action')
+                    ]
+
+                    if (userInput == 'Abort Deployment') {
+                        sendTelegram("❌ Deployment aborted by user.")
+                        error("Deployment aborted by user.")
+                    } else if (userInput == 'Reject - Skip Migration') {
+                        currentBuild.description = 'Migration skipped'
+                        sendTelegram("⏭️ Migration step skipped by user.")
+                    } else {
+                        currentBuild.description = 'Running migration'
+                        env.DO_MIGRATION = "true"
+                        sendTelegram("🔧 Approved: Proceeding with migration.")
+                    }
                 }
             }
         }
 
         stage('Migrate Database on Alpine') {
+            when {
+                expression { return env.DO_MIGRATION == "true" }
+            }
             steps {
                 echo '🛠️ Running php artisan migrate...'
                 sh """
@@ -88,6 +122,9 @@ pipeline {
                         cd ${REMOTE_DIR} && ${PHP_BIN} ./artisan migrate --force
                     '
                 """
+                script {
+                    sendTelegram("🛠️ Database migration completed.")
+                }
             }
         }
 
@@ -104,11 +141,19 @@ pipeline {
                         ${PHP_BIN} ./artisan route:clear
                     '
                 """
+                script {
+                    sendTelegram("🧹 Permissions fixed and cache cleared.")
+                }
             }
         }
     }
 
     post {
+        success {
+            script {
+                sendTelegram("✅ Deployment completed successfully.")
+            }
+        }
         failure {
             echo '🔁 Rollback due to failed deployment...'
             sh """
@@ -120,6 +165,18 @@ pipeline {
                     fi
                 '
             """
+            script {
+                sendTelegram("❌ Deployment failed. Rollback executed.")
+            }
         }
     }
+}
+
+// Custom function to send Telegram notification
+def sendTelegram(message) {
+    sh """
+        curl -s -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage \
+        -d chat_id=${TELEGRAM_CHAT_ID} \
+        -d text='[Capstone CI/CD] ${message}'
+    """
 }

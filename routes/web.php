@@ -52,5 +52,10 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
 });
 
+Route::middleware(['auth'])->group(function () {
+    Route::get('/users/{user}/password', [UserController::class, 'editPassword'])->name('users.password.edit');
+    Route::patch('/users/{user}/password', [UserController::class, 'updatePassword'])->name('users.password.update');
+});
+
 
 require __DIR__ . '/auth.php';
