@@ -1,10 +1,10 @@
-    agent any
+   agent anyAdd commentMore actions
 
     environment {
         REMOTE_HOST = "192.168.100.60"
         REMOTE_USER = "root"
         REMOTE_DIR = "/var/www/capstone-project"
-        BACKUP_DIR = "/var/www/capstone-project.bak"More actions
+        BACKUP_DIR = "/var/www/capstone-project.bak"
         PHP_BIN = "/usr/bin/php82"
         COMPOSER_BIN = "/usr/local/bin/composer"
         SSH_KEY = "/var/lib/jenkins/.ssh/alpine_git"
@@ -92,9 +92,7 @@
                 echo '🛠️ Running php artisan migrate...'
                 sh """
                 ssh -i \$SSH_KEY -o StrictHostKeyChecking=no \$REMOTE_USER@\$REMOTE_HOST '
-                    cd \$REMOTE_DIR && \$PHP_BIN artisan migrate --force
-
-
+                    cd \$REMOTE_DIR && \$PHP_BIN artisan migrate --force'
                 """
             }
         }
@@ -115,7 +113,7 @@
         success {
             echo '🧹 Cleaning up backup after successful deployment.'
             sh """
-            ssh -i \$SSH_KEY -o StrictHostKeyChecking=no \$REMOTE_USER@\$REMOTE_HOST '
+            ssh -i \$SSH_KEY -o StrictHostKeyChecking=no \$REMOTE_USER@\$REMOTE_HOST 'Add commentMore actions
                 rm -rf \$BACKUP_DIR
             '
             """
