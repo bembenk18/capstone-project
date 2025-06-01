@@ -195,9 +195,12 @@ def sendOrEditTelegram(String message) {
             """,
             returnStdout: true
         ).trim()
-        def newId = sh(script: "echo '${response}' | grep -o '"message_id":[0-9]*' | cut -d ':' -f2", returnStdout: true).trim()
+        def newId = sh(script: """echo '${response}' | grep -o '"message_id":[0-9]*' | cut -d ':' -f2""", returnStdout: true).trim()
+
         if (newId) {
             writeFile file: file, text: newId
         }
     }
 }
+
+
