@@ -69,8 +69,7 @@ pipeline {
                 """
             }
         }
-    }
-stage('Fix Permissions & Clear Cache') {
+        stage('Fix Permissions & Clear Cache') {
     steps {
         echo '🧹 Memperbaiki permission dan menghapus cache Laravel...'
         sh """
@@ -86,6 +85,8 @@ stage('Fix Permissions & Clear Cache') {
         """
     }
 }
+    }
+
 
     post {
         success {
