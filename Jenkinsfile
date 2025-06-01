@@ -1,132 +1,138 @@
-pipeline {
     agent any
 
     environment {
-        REMOTE_DIR = "/srv/www/project"
-        BACKUP_DIR = "/srv/www/project_backup"
-        GIT_URL = "https://github.com/bembenk18/capstone-project.git"
-        TELEGRAM_API = "https://api.telegram.org/bot${TELEGRAM_TOKEN}"
+        REMOTE_HOST = "192.168.100.60"
+        REMOTE_USER = "root"
+        REMOTE_DIR = "/var/www/capstone-project"
+        BACKUP_DIR = "/var/www/capstone-project.bak"More actions
+        PHP_BIN = "/usr/bin/php82"
+        COMPOSER_BIN = "/usr/local/bin/composer"
+        SSH_KEY = "/var/lib/jenkins/.ssh/alpine_git"
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                script {
-                    def commitMessage = sh(script: "git log -1 --pretty=%s", returnStdout: true).trim()
-                    def authorEmail = sh(script: "git log -1 --pretty=format:%ae", returnStdout: true).trim()
-                    currentBuild.description = "Deploy by ${authorEmail}"
 
-                    def message = "🚀 Deploy by ${authorEmail}\n📝 ${commitMessage}\n\n🏁 Stage: Checkout"
-                    writeFile file: 'telegram.txt', text: message
-                    def response = sh(script: "curl -s -X POST ${env.TELEGRAM_API}/sendMessage -d chat_id=${TELEGRAM_CHAT_ID} --data-urlencode text@telegram.txt -d parse_mode=Markdown", returnStdout: true).trim()
-                    def messageId = (response =~ /"message_id":(\d+)/)[0][1]
-                    writeFile file: 'message_id.txt', text: messageId
-                }
-            }
-        }
+
+
+
+
 
         stage('Backup Before Deploy') {
             steps {
-                script {
-                    def messageId = readFile('message_id.txt').trim()
-                    def text = readFile('telegram.txt').trim() + "\n\n🔄 Stage: Backup Before Deploy"
-                    sh """
-                        curl -s -X POST ${env.TELEGRAM_API}/editMessageText \
-                        -d chat_id=${TELEGRAM_CHAT_ID} \
-                        -d message_id=${messageId} \
-                        --data-urlencode text="${text}" \
-                        -d parse_mode=Markdown
-                    """
-
-                    sh """
-                        ssh -i /var/lib/jenkins/.ssh/alpine_git -o StrictHostKeyChecking=no root@192.168.100.60 '
-                        if [ -d "${REMOTE_DIR}" ]; then
-                            rm -rf "${BACKUP_DIR}"
-                            cp -r "${REMOTE_DIR}" "${BACKUP_DIR}"
-                        fi'
-                    """
-                }
+                echo '🗂️ Creating backup before deploy...'
+                sh """
+                ssh -i \$SSH_KEY -o StrictHostKeyChecking=no \$REMOTE_USER@\$REMOTE_HOST '
+                    if [ -d "\$REMOTE_DIR" ]; then
+                        rm -rf \$BACKUP_DIR
+                        cp -r \$REMOTE_DIR \$BACKUP_DIR
+                    fi
+                '
+                """
             }
         }
 
-        stage('Git Pull on Alpine') {
+               stage('Git Pull on Alpine') {
             steps {
-                script {
-                    def messageId = readFile('message_id.txt').trim()
-                    def text = readFile('telegram.txt').trim() + "\n\n🔄 Stage: Git Pull on Alpine"
-                    sh """
-                        curl -s -X POST ${env.TELEGRAM_API}/editMessageText \
-                        -d chat_id=${TELEGRAM_CHAT_ID} \
-                        -d message_id=${messageId} \
-                        --data-urlencode text="${text}" \
-                        -d parse_mode=Markdown
-                    """
+                echo '🔄 Git pull on Alpine server...'
+                sh """
+                    ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                        git config --global --add safe.directory ${REMOTE_DIR}
 
-                    sh """
-                        ssh -i /var/lib/jenkins/.ssh/alpine_git -o StrictHostKeyChecking=no root@192.168.100.60 '
-                        set -e
-                        if [ -d "${REMOTE_DIR}/.git" ]; then
-                            echo "[INFO] Repo git valid, pull update"
-                            cd ${REMOTE_DIR}
-                            git reset --hard HEAD
-                            git pull origin main
-                        else
-                            echo "[ERROR] Repo git tidak valid, rollback"
-                            exit 1
-                        fi'
-                    """
-                }
-            }
-        }
-
-        stage('Install Dependencies on Alpine') {
+                        if [ ! -d "${REMOTE_DIR}" ]; then
+@@ -47,57 +52,57 @@ pipeline {
             steps {
-                echo "Install dependencies..."
+                echo '📦 Running composer install...'
+                sh """
+                    ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                        cd ${REMOTE_DIR} && ${PHP_BIN} ${COMPOSER_BIN} install --no-interaction --prefer-dist --optimize-autoloader
+                    '
+                """
             }
         }
+
 
         stage('Restart PHP-FPM') {
             steps {
-                echo "Restart PHP-FPM..."
-            }
-        }
-    }
-
-    post {
-        success {
-            script {
-                def messageId = readFile('message_id.txt').trim()
-                def text = readFile('telegram.txt').trim() + "\n\n✅ Deployment berhasil!"
+                echo '♻️ Restarting PHP-FPM...'
                 sh """
-                    curl -s -X POST ${env.TELEGRAM_API}/editMessageText \
-                    -d chat_id=${TELEGRAM_CHAT_ID} \
-                    -d message_id=${messageId} \
-                    --data-urlencode text="${text}" \
-                    -d parse_mode=Markdown
+                ssh -i \$SSH_KEY -o StrictHostKeyChecking=no \$REMOTE_USER@\$REMOTE_HOST '
+                    pkill php-fpm82 || true
+                    /usr/sbin/php-fpm82 -D
+                '
                 """
             }
         }
 
+        stage('Approval for Database Migration') {
+            steps {
+                script {
+                    def userChoice = input message: 'Choose what to do with database migration:',
+                        parameters: [choice(name: 'Action', choices: ['Approve - Run Migration', 'Skip Migration', 'Abort'], description: 'Migration decision')]
+
+                    if (userChoice == 'Abort') {
+                        error("❌ Deployment aborted by user.")
+                    } else if (userChoice == 'Skip Migration') {
+                        echo "🚫 Migration skipped as requested."
+                        currentBuild.description = "Skipped migration"
+                        // Set a flag so migration stage can be skipped
+                        env.SKIP_MIGRATION = "true"
+                    } else {
+                        echo "✅ Proceeding to run migration..."
+                        env.SKIP_MIGRATION = "false"
+                    }
+                }
+            }
+        }
+
+        stage('Migrate Database on Alpine') {
+            when {
+                expression { env.SKIP_MIGRATION != "true" }
+            }
+            steps {
+                echo '🛠️ Running php artisan migrate...'
+                sh """
+                ssh -i \$SSH_KEY -o StrictHostKeyChecking=no \$REMOTE_USER@\$REMOTE_HOST '
+                    cd \$REMOTE_DIR && \$PHP_BIN artisan migrate --force
+                '
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                """
+            }
+        }
+@@ -107,22 +112,13 @@ pipeline {
         failure {
-            script {
-                def messageId = readFile('message_id.txt').trim()
-                def text = readFile('telegram.txt').trim() + "\n\n❌ Deployment gagal, rollback..."
-                sh """
-                    curl -s -X POST ${env.TELEGRAM_API}/editMessageText \
-                    -d chat_id=${TELEGRAM_CHAT_ID} \
-                    -d message_id=${messageId} \
-                    --data-urlencode text="${text}" \
-                    -d parse_mode=Markdown
-                """
-                sh """
-                    ssh -i /var/lib/jenkins/.ssh/alpine_git -o StrictHostKeyChecking=no root@192.168.100.60 '
-                    if [ -d "${BACKUP_DIR}" ]; then
-                        rm -rf "${REMOTE_DIR}"
-                        mv "${BACKUP_DIR}" "${REMOTE_DIR}"
-                        /usr/sbin/php-fpm82 -D
-                    fi'
-                """
-            }
+            echo '🔁 Rollback due to failed deployment...'
+            sh """
+            ssh -i \$SSH_KEY -o StrictHostKeyChecking=no \$REMOTE_USER@\$REMOTE_HOST '
+                if [ -d "\$BACKUP_DIR" ]; then
+                    rm -rf \$REMOTE_DIR
+                    mv \$BACKUP_DIR \$REMOTE_DIR
+                    /usr/sbin/php-fpm82 -D
+                fi
+            '
+            """
+        }
+
+        success {
+            echo '🧹 Cleaning up backup after successful deployment.'
+            sh """
+            ssh -i \$SSH_KEY -o StrictHostKeyChecking=no \$REMOTE_USER@\$REMOTE_HOST '
+                rm -rf \$BACKUP_DIR
+            '
+            """
         }
     }
-}
