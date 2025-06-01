@@ -39,24 +39,7 @@ pipeline {
             }
         }
 
-        stage('Manual Approval to Migrate') {
-            steps {
-                timeout(time: 10, unit: 'MINUTES') {
-                    input message: 'Lanjutkan ke database migration (php artisan migrate --force)?'
-                }
-            }
-        }
-
-        stage('Migrate Database on Alpine') {
-            steps {
-                echo '🛠️ Menjalankan php artisan migrate...'
-                sh """
-                ssh -i $SSH_KEY -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST '
-                    cd $REMOTE_DIR && $PHP_BIN artisan migrate
-                '
-                """
-            }
-        }
+        
 
         stage('Restart PHP-FPM') {
             steps {
@@ -84,6 +67,25 @@ pipeline {
         '
         """
     }
+
+    stage('Manual Approval to Migrate') {
+            steps {
+                timeout(time: 10, unit: 'MINUTES') {
+                    input message: 'Lanjutkan ke database migration (php artisan migrate --force)?'
+                }
+            }
+        }
+
+        stage('Migrate Database on Alpine') {
+            steps {
+                echo '🛠️ Menjalankan php artisan migrate...'
+                sh """
+                ssh -i $SSH_KEY -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST '
+                    cd $REMOTE_DIR && $PHP_BIN artisan migrate
+                '
+                """
+            }
+        }
 }
     }
 
