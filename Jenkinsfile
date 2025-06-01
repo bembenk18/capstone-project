@@ -11,6 +11,21 @@ pipeline {
     }
 
     stages {
+
+        stage('Backup Sebelum Deploy') {
+            steps {
+            echo '🗂️ Membuat backup sebelum deploy...'
+            sh """
+            ssh -i \$SSH_KEY -o StrictHostKeyChecking=no \$REMOTE_USER@\$REMOTE_HOST '
+                if [ -d "\$REMOTE_DIR" ]; then
+                    rm -rf \$BACKUP_DIR
+                    cp -r \$REMOTE_DIR \$BACKUP_DIR
+                fi
+            '
+            """
+    }
+}
+
         stage('Git Pull on Alpine') {
             steps {
                 echo '🔄 Git pull di server Alpine...'
@@ -76,11 +91,27 @@ pipeline {
 
 
     post {
-        success {
-            echo '✅ Deploy Laravel ke Alpine sukses!'
-        }
-        failure {
-            echo '❌ Deploy gagal. Cek log build.'
-        }
+    failure {
+        echo '🔁 Rollback karena deploy gagal...'
+        sh """
+        ssh -i \$SSH_KEY -o StrictHostKeyChecking=no \$REMOTE_USER@\$REMOTE_HOST '
+            if [ -d "\$BACKUP_DIR" ]; then
+                rm -rf \$REMOTE_DIR
+                mv \$BACKUP_DIR \$REMOTE_DIR
+                /usr/sbin/php-fpm82 -D
+            fi
+        '
+        """
     }
+
+    success {
+        echo '🧹 Menghapus backup karena deploy berhasil.'
+        sh """
+        ssh -i \$SSH_KEY -o StrictHostKeyChecking=no \$REMOTE_USER@\$REMOTE_HOST '
+            rm -rf \$BACKUP_DIR
+        '
+        """
+    }
+}
+
 }
