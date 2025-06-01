@@ -26,19 +26,19 @@ pipeline {
             }
         }
 
-        stage('Git Pull on Alpine') {
+               stage('Git Pull on Alpine') {
             steps {
                 echo '🔄 Git pull on Alpine server...'
                 sh """
-                ssh -i \$SSH_KEY -o StrictHostKeyChecking=no \$REMOTE_USER@\$REMOTE_HOST '
-                    git config --global --add safe.directory \$REMOTE_DIR
+                    ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                        git config --global --add safe.directory ${REMOTE_DIR}
 
-                    if [ ! -d "\$REMOTE_DIR" ]; then
-                        git clone https://github.com/bembenk18/capstone-project.git \$REMOTE_DIR;
-                    else
-                        cd \$REMOTE_DIR && git pull origin main;
-                    fi
-                '
+                        if [ ! -d "${REMOTE_DIR}" ]; then
+                            git clone https://github.com/bembenk18/capstone-project.git ${REMOTE_DIR}
+                        else
+                            cd ${REMOTE_DIR} && git pull origin main
+                        fi
+                    '
                 """
             }
         }
@@ -47,12 +47,13 @@ pipeline {
             steps {
                 echo '📦 Running composer install...'
                 sh """
-                ssh -i \$SSH_KEY -o StrictHostKeyChecking=no \$REMOTE_USER@\$REMOTE_HOST '
-                    cd \$REMOTE_DIR && \$COMPOSER_BIN install --no-interaction --prefer-dist --optimize-autoloader
-                '
+                    ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} '
+                        cd ${REMOTE_DIR} && ${PHP_BIN} ${COMPOSER_BIN} install --no-interaction --prefer-dist --optimize-autoloader
+                    '
                 """
             }
         }
+
 
         stage('Restart PHP-FPM') {
             steps {
