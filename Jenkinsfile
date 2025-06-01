@@ -185,7 +185,7 @@ def sendOrEditTelegram(String message) {
         ).trim()
     }
 
-    if (!msgId || response.contains('message_id') == false) {
+    if (!msgId || !response.contains('message_id')) {
         response = sh(
             script: """
                 curl -s -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage \
@@ -195,12 +195,9 @@ def sendOrEditTelegram(String message) {
             """,
             returnStdout: true
         ).trim()
-        def newId = sh(script: """echo '${response}' | grep -o '"message_id":[0-9]*' | cut -d ':' -f2""", returnStdout: true).trim()
-
+        def newId = sh(script: "echo '${response}' | grep -o \"message_id\\":[0-9]* | cut -d ':' -f2", returnStdout: true).trim()
         if (newId) {
             writeFile file: file, text: newId
         }
     }
 }
-
-
