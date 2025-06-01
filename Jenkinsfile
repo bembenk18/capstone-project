@@ -39,7 +39,7 @@ pipeline {
             }
         }
 
-        
+       
 
         stage('Restart PHP-FPM') {
             steps {
@@ -52,23 +52,8 @@ pipeline {
                 """
             }
         }
-        stage('Fix Permissions & Clear Cache') {
-    steps {
-        echo '🧹 Memperbaiki permission dan menghapus cache Laravel...'
-        sh """
-        ssh -i $SSH_KEY -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST '
-            cd $REMOTE_DIR
 
-            chmod -R g+rw storage
-            chown -R nginx:nginx storage bootstrap/cache
-            chmod -R 775 bootstrap/cache
-
-            $PHP_BIN artisan cache:clear
-        '
-        """
-    }
-
-    stage('Manual Approval to Migrate') {
+         stage('Manual Approval to Migrate') {
             steps {
                 timeout(time: 10, unit: 'MINUTES') {
                     input message: 'Lanjutkan ke database migration (php artisan migrate --force)?'
@@ -86,7 +71,7 @@ pipeline {
                 """
             }
         }
-}
+        
     }
 
 
