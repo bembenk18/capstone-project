@@ -7,7 +7,7 @@ pipeline {
         REMOTE_DIR = "/var/www/capstone-project"
         PHP_BIN = "/usr/bin/php82"
         COMPOSER_BIN = "/usr/local/bin/composer"
-        SSH_KEY = "/var/lib/jenkins/.ssh/alpine_git" 
+        SSH_KEY = "/var/lib/jenkins/.ssh/alpine_git" // path SSH key Jenkins
     }
 
     stages {
@@ -16,6 +16,8 @@ pipeline {
                 echo '🔄 Git pull di server Alpine...'
                 sh """
                 ssh -i $SSH_KEY -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST '
+                    git config --global --add safe.directory $REMOTE_DIR
+
                     if [ ! -d "$REMOTE_DIR" ]; then
                         git clone https://github.com/bembenk18/capstone-project.git $REMOTE_DIR;
                     else
