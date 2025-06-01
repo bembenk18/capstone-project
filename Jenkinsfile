@@ -46,28 +46,29 @@ pipeline {
         }
 
         stage('Git Pull on Alpine') {
-            steps {
-                script {
-                    sendOrEditTelegram("${env.DEPLOY_SUMMARY}\n\n🔄 Stage: Git Pull on Alpine")
-                }
-                sh '''
-                    ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${REMOTE_HOST} '
-                        git config --global --add safe.directory ${REMOTE_DIR}
-
-                        if [ ! -d "${REMOTE_DIR}/.git" ]; then
-                            echo "[WARN] Folder bukan repo git, hapus dan clone ulang"
-                            rm -rf ${REMOTE_DIR}
-                            git clone https://github.com/bembenk18/capstone-project.git ${REMOTE_DIR}
-                        else
-                            echo "[INFO] Pull latest update"
-                            cd ${REMOTE_DIR}
-                            git reset --hard
-                            git pull origin main
-                        fi
-                    '
-                '''
-            }
+    steps {
+        script {
+            sendOrEditTelegram("${env.DEPLOY_SUMMARY}\n\n🔄 Stage: Git Pull on Alpine")
         }
+        sh '''
+            ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${REMOTE_HOST} '
+                set -e
+
+                if [ ! -d "${REMOTE_DIR}/.git" ]; then
+                    echo "[WARN] Bukan repo git, hapus dan clone ulang"
+                    rm -rf ${REMOTE_DIR}
+                    git clone https://github.com/bembenk18/capstone-project.git ${REMOTE_DIR}
+                else
+                    echo "[INFO] Repo git valid, pull update"
+                    cd ${REMOTE_DIR}
+                    git reset --hard HEAD
+                    git pull origin main
+                fi
+            '
+        '''
+    }
+}
+
 
         stage('Install Dependencies on Alpine') {
             steps {
