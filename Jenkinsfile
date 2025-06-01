@@ -14,15 +14,21 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                checkout scm
-                script {
-                    env.GIT_COMMIT_MESSAGE = sh(script: 'git log -1 --pretty=%s', returnStdout: true).trim()
-                    env.GIT_AUTHOR = sh(script: 'git log -1 --pretty=format:%ae', returnStdout: true).trim()
-                }
-            }
+       stage('Checkout') {
+    steps {
+        checkout([$class: 'GitSCM',
+            branches: [[name: '*/main']],
+            userRemoteConfigs: [[url: 'https://github.com/bembenk18/capstone-project.git']],
+            doGenerateSubmoduleConfigurations: false,
+            extensions: [[$class: 'CloneOption', noTags: false, shallow: false]]
+        ])
+        script {
+            env.GIT_COMMIT_MESSAGE = sh(script: "git log -1 --pretty=format:'%s'", returnStdout: true).trim()
+            env.GIT_AUTHOR = sh(script: "git log -1 --pretty=format:'%ae'", returnStdout: true).trim()
         }
+    }
+}
+
 
         stage('Backup Before Deploy') {
             steps {
