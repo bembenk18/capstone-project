@@ -54,7 +54,8 @@ pipeline {
                     ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${REMOTE_HOST} '
                         git config --global --add safe.directory ${REMOTE_DIR}
 
-                        if [ ! -d "${REMOTE_DIR}" ]; then
+                        if [ ! -d "${REMOTE_DIR}/.git" ]; then
+                            rm -rf ${REMOTE_DIR}
                             git clone https://github.com/bembenk18/capstone-project.git ${REMOTE_DIR}
                         else
                             cd ${REMOTE_DIR} && git pull origin main
@@ -166,42 +167,34 @@ pipeline {
 
 def sendOrEditTelegram(String message) {
     def file = '/tmp/telegram_message_id.txt'
-    def msgId = ''
-    if (fileExists(file)) {
-        msgId = readFile(file).trim()
-    }
+    def msgId = fileExists(file) ? readFile(file).trim() : ''
+    def safeMessage = message.replace("'", "'\"'\"'") // escape for safe shell
 
-    def response
     if (msgId) {
-        response = sh(
+        sh """
+            curl -s -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/editMessageText \
+                -d chat_id=${TELEGRAM_CHAT_ID} \
+                -d message_id=${msgId} \
+                --data-urlencode text='${safeMessage}' \
+                -d parse_mode=Markdown
+        """
+    } else {
+        def response = sh(
             script: """
-                curl -s -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/editMessageText \
+                curl -s -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage \
                     -d chat_id=${TELEGRAM_CHAT_ID} \
-                    -d message_id=${msgId} \
-                    --data-urlencode text='${message}' \
+                    --data-urlencode text='${safeMessage}' \
                     -d parse_mode=Markdown
             """,
             returnStdout: true
         ).trim()
-    }
 
-    if (!msgId || !response.contains('message_id')) {
-    response = sh(
-        script: """
-            curl -s -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage \\
-                -d chat_id=${TELEGRAM_CHAT_ID} \\
-                --data-urlencode text='${message}' \\
-                -d parse_mode=Markdown
-        """,
-        returnStdout: true
-    ).trim()
-    def newId = sh(
-        script: '''echo "$response" | grep -o "message_id":[0-9]* | cut -d ":" -f2''',
-        returnStdout: true
-    ).trim()
-    if (newId) {
-        writeFile file: file, text: newId
+        def newId = sh(
+            script: "echo '${response}' | grep -o '\"message_id\":[0-9]*' | cut -d ':' -f2",
+            returnStdout: true
+        ).trim()
+        if (newId) {
+            writeFile file: file, text: newId
+        }
     }
-}
-
 }
