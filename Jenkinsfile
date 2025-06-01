@@ -8,9 +8,12 @@ pipeline {
         PHP_BIN = "/usr/bin/php82"
         COMPOSER_BIN = "/usr/local/bin/composer"
         SSH_KEY = "/var/lib/jenkins/.ssh/alpine_git"
-
         TELEGRAM_TOKEN = credentials('TELEGRAM_TOKEN')
         TELEGRAM_CHAT_ID = credentials('TELEGRAM_CHAT_ID')
+    }
+
+    options {
+        skipStagesAfterUnstable()
     }
 
     stages {
@@ -18,32 +21,36 @@ pipeline {
             steps {
                 checkout scm
                 script {
-                    sendTelegram("📥 Checkout complete.")
+                    def commitMsg = sh(script: 'git log -1 --pretty=%s', returnStdout: true).trim()
+                    def author = sh(script: 'git log -1 --pretty=format:%ae', returnStdout: true).trim()
+                    env.DEPLOY_SUMMARY = "🚀 Deploy by ${author}\n📝 ${commitMsg}"
+                    sendOrEditTelegram("${env.DEPLOY_SUMMARY}\n\n🏁 Stage: Checkout")
                 }
             }
         }
 
         stage('Backup Before Deploy') {
             steps {
-                echo '🗂️ Creating backup before deploy...'
-                sh """
+                script {
+                    sendOrEditTelegram("${env.DEPLOY_SUMMARY}\n\n🔄 Stage: Backup Before Deploy")
+                }
+                sh '''
                     ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${REMOTE_HOST} '
                         if [ -d "${REMOTE_DIR}" ]; then
                             rm -rf ${BACKUP_DIR}
                             cp -r ${REMOTE_DIR} ${BACKUP_DIR}
                         fi
                     '
-                """
-                script {
-                    sendTelegram("📦 Backup created before deployment.")
-                }
+                '''
             }
         }
 
         stage('Git Pull on Alpine') {
             steps {
-                echo '🔄 Git pull on Alpine server...'
-                sh """
+                script {
+                    sendOrEditTelegram("${env.DEPLOY_SUMMARY}\n\n🔄 Stage: Git Pull on Alpine")
+                }
+                sh '''
                     ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${REMOTE_HOST} '
                         git config --global --add safe.directory ${REMOTE_DIR}
 
@@ -53,59 +60,47 @@ pipeline {
                             cd ${REMOTE_DIR} && git pull origin main
                         fi
                     '
-                """
-                script {
-                    sendTelegram("📥 Git pull completed on Alpine server.")
-                }
+                '''
             }
         }
 
         stage('Install Dependencies on Alpine') {
             steps {
-                echo '📦 Running composer install...'
-                sh """
+                script {
+                    sendOrEditTelegram("${env.DEPLOY_SUMMARY}\n\n📦 Stage: Install Dependencies")
+                }
+                sh '''
                     ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${REMOTE_HOST} '
                         cd ${REMOTE_DIR} && ${PHP_BIN} ${COMPOSER_BIN} install --no-interaction --prefer-dist --optimize-autoloader
                     '
-                """
-                script {
-                    sendTelegram("📦 Composer dependencies installed.")
-                }
+                '''
             }
         }
 
         stage('Restart PHP-FPM') {
             steps {
-                echo '♻️ Restarting PHP-FPM...'
-                sh """
+                script {
+                    sendOrEditTelegram("${env.DEPLOY_SUMMARY}\n\n♻️ Stage: Restart PHP-FPM")
+                }
+                sh '''
                     ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${REMOTE_HOST} '
                         pkill php-fpm82 || true
                         /usr/sbin/php-fpm82 -D
                     '
-                """
-                script {
-                    sendTelegram("♻️ PHP-FPM restarted.")
-                }
+                '''
             }
         }
 
         stage('Approval for Database Migration') {
             steps {
                 script {
-                    def userInput = input message: '🚨 Proceed with database migration?', parameters: [
-                        choice(name: 'Decision', choices: ['Approve - Run Migrate', 'Reject - Skip Migration', 'Abort Deployment'], description: 'Select your action')
-                    ]
-
-                    if (userInput == 'Abort Deployment') {
-                        sendTelegram("❌ Deployment aborted by user.")
-                        error("Deployment aborted by user.")
-                    } else if (userInput == 'Reject - Skip Migration') {
-                        currentBuild.description = 'Migration skipped'
-                        sendTelegram("⏭️ Migration step skipped by user.")
-                    } else {
-                        currentBuild.description = 'Running migration'
-                        env.DO_MIGRATION = "true"
-                        sendTelegram("🔧 Approved: Proceeding with migration.")
+                    sendOrEditTelegram("${env.DEPLOY_SUMMARY}\n\n⏳ Stage: Waiting for DB Migration Approval")
+                    def userInput = input message: '🚨 Lanjutkan migrasi database?', parameters: [choice(name: 'Action', choices: ['Yes', 'Skip', 'Abort'], description: 'Pilih aksi:')]
+                    if (userInput == 'Abort') {
+                        error("❌ Deployment aborted by user.")
+                    } else if (userInput == 'Skip') {
+                        currentBuild.description = 'Migration Skipped'
+                        env.SKIP_MIGRATE = 'true'
                     }
                 }
             }
@@ -113,37 +108,35 @@ pipeline {
 
         stage('Migrate Database on Alpine') {
             when {
-                expression { return env.DO_MIGRATION == "true" }
+                expression { return env.SKIP_MIGRATE != 'true' }
             }
             steps {
-                echo '🛠️ Running php artisan migrate...'
-                sh """
-                    ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${REMOTE_HOST} '
-                        cd ${REMOTE_DIR} && ${PHP_BIN} ./artisan migrate --force
-                    '
-                """
                 script {
-                    sendTelegram("🛠️ Database migration completed.")
+                    sendOrEditTelegram("${env.DEPLOY_SUMMARY}\n\n🛠️ Stage: Database Migration")
                 }
+                sh '''
+                    ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${REMOTE_HOST} '
+                        cd ${REMOTE_DIR} && ${PHP_BIN} artisan migrate --force
+                    '
+                '''
             }
         }
 
         stage('Fix Permissions & Clear Cache') {
             steps {
-                echo '🔧 Fixing permissions and clearing cache...'
-                sh """
+                script {
+                    sendOrEditTelegram("${env.DEPLOY_SUMMARY}\n\n🔧 Stage: Fix Permissions & Clear Cache")
+                }
+                sh '''
                     ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${REMOTE_HOST} '
                         cd ${REMOTE_DIR}
                         chmod -R guo+w storage bootstrap/cache
-                        ${PHP_BIN} ./artisan cache:clear
-                        ${PHP_BIN} ./artisan config:clear
-                        ${PHP_BIN} ./artisan view:clear
-                        ${PHP_BIN} ./artisan route:clear
+                        ${PHP_BIN} artisan cache:clear
+                        ${PHP_BIN} artisan config:clear
+                        ${PHP_BIN} artisan view:clear
+                        ${PHP_BIN} artisan route:clear
                     '
-                """
-                script {
-                    sendTelegram("🧹 Permissions fixed and cache cleared.")
-                }
+                '''
             }
         }
     }
@@ -151,12 +144,14 @@ pipeline {
     post {
         success {
             script {
-                sendTelegram("✅ Deployment completed successfully.")
+                sendOrEditTelegram("${env.DEPLOY_SUMMARY}\n\n✅ Deployment berhasil.")
             }
         }
         failure {
-            echo '🔁 Rollback due to failed deployment...'
-            sh """
+            script {
+                sendOrEditTelegram("${env.DEPLOY_SUMMARY}\n\n❌ Deployment gagal, rollback...")
+            }
+            sh '''
                 ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no ${REMOTE_HOST} '
                     if [ -d "${BACKUP_DIR}" ]; then
                         rm -rf ${REMOTE_DIR}
@@ -164,19 +159,45 @@ pipeline {
                         /usr/sbin/php-fpm82 -D
                     fi
                 '
-            """
-            script {
-                sendTelegram("❌ Deployment failed. Rollback executed.")
-            }
+            '''
         }
     }
 }
 
-// Custom function to send Telegram notification
-def sendTelegram(message) {
-    sh """
-        curl -s -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage \
-        -d chat_id=${TELEGRAM_CHAT_ID} \
-        -d text='[Capstone CI/CD] ${message}'
-    """
+def sendOrEditTelegram(String message) {
+    def file = '/tmp/telegram_message_id.txt'
+    def msgId = ''
+    if (fileExists(file)) {
+        msgId = readFile(file).trim()
+    }
+
+    def response
+    if (msgId) {
+        response = sh(
+            script: """
+                curl -s -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/editMessageText \
+                    -d chat_id=${TELEGRAM_CHAT_ID} \
+                    -d message_id=${msgId} \
+                    --data-urlencode text='${message}' \
+                    -d parse_mode=Markdown
+            """,
+            returnStdout: true
+        ).trim()
+    }
+
+    if (!msgId || response.contains('message_id') == false) {
+        response = sh(
+            script: """
+                curl -s -X POST https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage \
+                    -d chat_id=${TELEGRAM_CHAT_ID} \
+                    --data-urlencode text='${message}' \
+                    -d parse_mode=Markdown
+            """,
+            returnStdout: true
+        ).trim()
+        def newId = sh(script: "echo '${response}' | grep -o '"message_id":[0-9]*' | cut -d ':' -f2", returnStdout: true).trim()
+        if (newId) {
+            writeFile file: file, text: newId
+        }
+    }
 }
