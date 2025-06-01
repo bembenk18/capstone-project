@@ -2,56 +2,79 @@ pipeline {
     agent any
 
     environment {
-        APP_ENV = 'production'
-        DEPLOY_DIR = '/var/www/capstone-project'
-        PHP_BIN = '/usr/bin/php82'
+        REMOTE_HOST = "192.168.100.60"
+        REMOTE_USER = "root"
+        REMOTE_DIR = "/var/www/capstone-project"
+        PHP_BIN = "/usr/bin/php82"
+        COMPOSER_BIN = "/usr/local/bin/composer"
+        SSH_KEY = "/var/lib/jenkins/.ssh/alpine_git" 
     }
 
     stages {
-        stage('Pull Latest Code') {
+        stage('Git Pull on Alpine') {
             steps {
-                echo '🔄 Pulling latest code...'
-                sh "cd $DEPLOY_DIR && git pull origin main"
+                echo '🔄 Git pull di server Alpine...'
+                sh """
+                ssh -i $SSH_KEY -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST '
+                    if [ ! -d "$REMOTE_DIR" ]; then
+                        git clone https://github.com/bembenk18/capstone-project.git $REMOTE_DIR;
+                    else
+                        cd $REMOTE_DIR && git pull origin main;
+                    fi
+                '
+                """
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Install Dependencies on Alpine') {
             steps {
-                echo '📦 Installing Composer dependencies...'
-                sh "cd $DEPLOY_DIR && composer install --no-interaction --prefer-dist --optimize-autoloader"
+                echo '📦 Menjalankan composer install...'
+                sh """
+                ssh -i $SSH_KEY -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST '
+                    cd $REMOTE_DIR && $COMPOSER_BIN install --no-interaction --prefer-dist --optimize-autoloader
+                '
+                """
             }
         }
 
-        stage('Manual Approval to Migrate DB') {
+        stage('Manual Approval to Migrate') {
             steps {
                 timeout(time: 10, unit: 'MINUTES') {
-                    input message: 'Apakah kamu ingin menjalankan `php artisan migrate --force`?'
+                    input message: 'Lanjutkan ke database migration (php artisan migrate --force)?'
                 }
             }
         }
 
-        stage('Migrate Database') {
+        stage('Migrate Database on Alpine') {
             steps {
-                echo '🛠️ Running Laravel migrations...'
-                sh "cd $DEPLOY_DIR && $PHP_BIN artisan migrate --force"
+                echo '🛠️ Menjalankan php artisan migrate...'
+                sh """
+                ssh -i $SSH_KEY -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST '
+                    cd $REMOTE_DIR && $PHP_BIN artisan migrate --force
+                '
+                """
             }
         }
 
         stage('Restart PHP-FPM') {
             steps {
-                echo '♻️ Restarting PHP-FPM...'
-                sh "pkill php-fpm82 || true"
-                sh "/usr/sbin/php-fpm82 -D"
+                echo '♻️ Restart PHP-FPM...'
+                sh """
+                ssh -i $SSH_KEY -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST '
+                    pkill php-fpm82 || true
+                    /usr/sbin/php-fpm82 -D
+                '
+                """
             }
         }
     }
 
     post {
         success {
-            echo '✅ Deployment completed successfully!'
+            echo '✅ Deploy Laravel ke Alpine sukses!'
         }
         failure {
-            echo '❌ Deployment failed!'
+            echo '❌ Deploy gagal. Cek log build.'
         }
     }
 }
