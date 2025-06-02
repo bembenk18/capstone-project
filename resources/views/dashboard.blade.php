@@ -85,7 +85,7 @@
 let summaryChart, stokChart;
 
 function loadSummaryChart(range = 'daily') {
-    fetch(`{{ route('dashboard.summary-chart') }}?range=${range}`)
+    fetch("{{ route('dashboard.summary-chart', [], false) }}?range=" + range)
         .then(res => res.json())
         .then(data => {
             const ctx = document.getElementById('summaryChart').getContext('2d');
@@ -128,7 +128,8 @@ function loadSummaryChart(range = 'daily') {
 }
 
 function loadStokChart() {
-    fetch('{{ route('dashboard.stok-chart') }}')
+    fetch("{{ route('dashboard.stok-chart', [], false) }}")
+
         .then(res => res.json())
         .then(data => {
             const ctx = document.getElementById('stokChart').getContext('2d');
