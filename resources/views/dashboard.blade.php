@@ -5,7 +5,7 @@
 @section('title', 'Dashboard | ' . \App\Helpers\SettingHelper::companyName())
 
 @section('content_header')
-    <h1>Dashboard</h1>
+    <h1>Dashboard Demo</h1>
 @stop
 
 @section('content')
@@ -160,7 +160,7 @@ function loadStokChart() {
 
 document.getElementById('rangeFilter').addEventListener('change', e => loadSummaryChart(e.target.value));
 
-loadSummaryChart(); // default load
+loadSummaryChart(); 
 loadStokChart();
 </script>
 @stop
